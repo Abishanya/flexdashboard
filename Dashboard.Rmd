@@ -1,0 +1,161 @@
+---
+title: "Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+
+```
+Page 1
+==============================================================
+row(.sidebar)
+-----------------------------------------------------------------------
+```{r , global, echo=FALSE}
+   fileInput("file1", "Choose CSV File",
+                multiple = TRUE,
+                accept = c("text/csv",
+                         "text/comma-separated-values,text/plain",
+                         ".csv"))
+  
+```
+
+
+
+### Missing values
+
+```{r}
+
+renderValueBox({
+req(input$file1)
+df <- read.csv(input$file1$datapath)
+
+total_missing_count = sum(is.na(df))
+valueBox(total_missing_count, 
+         icon = "fa-question",
+         color = ifelse(total_missing_count > 0, "warning", "primary"))
+})
+```
+
+### Total number of observation
+
+```{r}
+
+renderValueBox({
+req(input$file1)
+df <- read.csv(input$file1$datapath)
+
+total = nrow(df)
+valueBox(total, 
+         icon = "fa-pencil")
+})
+```
+
+
+row{data-height=200}
+-----------------------------------------------------------------------
+
+### Data Table
+```{r show_table}
+   library(DT)
+   library(ggplot2)
+
+DT::renderDataTable({
+  req(input$file1)
+  df <- read.csv(input$file1$datapath)
+        
+ df %>% datatable(extensions = 'Buttons',
+            options = list(dom = 'Blfrtip',
+                           buttons = c('copy', 'csv', 'excel', 'pdf', 'print'),
+                           lengthMenu = list(c(10,25,50,-1),
+                                             c(10,25,50,"All"))), fillContainer = TRUE)
+ 
+})
+```
+
+### Correlation Plot
+
+
+```{r}
+
+library(dplyr)
+library(plotly)
+library(visdat)
+library(corrplot)
+        
+renderPlot({
+req(input$file1)
+df <- read.csv(input$file1$datapath)
+df2 <- select_if(df, is.numeric)
+GGally::ggpairs(df2)
+})
+```
+
+Page 2
+================================================================= 
+
+column{.sidebar}
+----------------------------------------------------------
+
+```{r}
+renderUI({
+  req(input$file1)
+  df <- read.csv(input$file1$datapath)
+  
+  selectInput("Variable1", label = "Select Variable 1:", choices = colnames(df))
+})
+
+```
+
+
+
+```{r}
+renderUI({
+  req(input$file1)
+  df <- read.csv(input$file1$datapath)
+  selectInput("Variable2", label = "Select Variable 2:", choices = colnames(df))
+})
+
+```
+
+
+Row 
+-----------------------------------------------------------------------
+###Box plot for selected variable 1 
+
+```{r}
+library(plotly)
+renderPlotly({
+  req(input$file1)
+  df <- read.csv(input$file1$datapath)
+  
+  plot_ly(df,
+          x = ~df[[input$Variable1]],
+          type = "box", mode = "markers") %>% layout(title = "",
+           xaxis = list(title = "" ,zeroline = FALSE))
+})
+```
+
+
+###scatter plot
+```{r}
+library(plotly)
+renderPlotly({
+  req(input$file1)
+  df <- read.csv(input$file1$datapath)
+  
+  plot_ly(df,
+          x = ~df[[input$Variable1]],
+          y = ~df[[input$Variable2]],
+          type = "scatter", mode = "markers")%>% layout(title = "",
+           xaxis = list(title = "" ,zeroline = FALSE))
+})
+```
+
+
+    
+
